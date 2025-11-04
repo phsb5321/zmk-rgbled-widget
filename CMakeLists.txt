@@ -1,4 +1,8 @@
 target_sources_ifdef(CONFIG_RGBLED_WIDGET app PRIVATE src/widget.c)
+target_sources_ifdef(CONFIG_RGBLED_WIDGET_LED_STRIP_PWM app PRIVATE src/led_strip_pwm.c)
+target_sources_ifdef(CONFIG_RGBLED_WIDGET_WS2812 app PRIVATE src/widget_ws2812.c)
+target_sources_ifdef(CONFIG_RGBLED_WIDGET_MONO app PRIVATE src/widget_mono.c)
 target_sources_ifdef(CONFIG_ZMK_BEHAVIOR_RGBLED_WIDGET app PRIVATE src/behaviors/behavior_rgbled_widget.c)
+target_sources_ifdef(CONFIG_RGBLED_WIDGET_POWER_MGMT app PRIVATE src/power_mgmt.c)
 
 zephyr_include_directories(include)

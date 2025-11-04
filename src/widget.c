@@ -41,11 +41,18 @@ BUILD_ASSERT(!(SHOW_LAYER_CHANGE && SHOW_LAYER_COLORS),
              "CONFIG_RGBLED_WIDGET_SHOW_LAYER_CHANGE and CONFIG_RGBLED_WIDGET_SHOW_LAYER_COLORS "
              "are mutually exclusive");
 
+BUILD_ASSERT(!(SHOW_BLE_PROFILE && SHOW_LAYER_COLORS),
+             "CONFIG_RGBLED_WIDGET_SHOW_BLE_PROFILE and CONFIG_RGBLED_WIDGET_SHOW_LAYER_COLORS "
+             "are mutually exclusive");
 // GPIO-based LED device and indices of red/green/blue LEDs inside its DT node
 static const struct device *led_dev = DEVICE_DT_GET(LED_GPIO_NODE_ID);
 static const uint8_t rgb_idx[] = {DT_NODE_CHILD_IDX(DT_ALIAS(led_red)),
                                   DT_NODE_CHILD_IDX(DT_ALIAS(led_green)),
                                   DT_NODE_CHILD_IDX(DT_ALIAS(led_blue))};
+// static const uint8_t rgb_bright[] = {  30,
+//     30,
+//     30
+// };
 
 // map from color values to names, for logging
 static const char *color_names[] = {"black", "red",     "green", "yellow",
@@ -53,6 +60,27 @@ static const char *color_names[] = {"black", "red",     "green", "yellow",
 
 #if SHOW_LAYER_COLORS
 static const uint8_t layer_color_idx[] = {
+    CONFIG_RGBLED_WIDGET_LAYER_0_COLOR,  CONFIG_RGBLED_WIDGET_LAYER_1_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_2_COLOR,  CONFIG_RGBLED_WIDGET_LAYER_3_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_4_COLOR,  CONFIG_RGBLED_WIDGET_LAYER_5_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_6_COLOR,  CONFIG_RGBLED_WIDGET_LAYER_7_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_8_COLOR,  CONFIG_RGBLED_WIDGET_LAYER_9_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_10_COLOR, CONFIG_RGBLED_WIDGET_LAYER_11_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_12_COLOR, CONFIG_RGBLED_WIDGET_LAYER_13_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_14_COLOR, CONFIG_RGBLED_WIDGET_LAYER_15_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_16_COLOR, CONFIG_RGBLED_WIDGET_LAYER_17_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_18_COLOR, CONFIG_RGBLED_WIDGET_LAYER_19_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_20_COLOR, CONFIG_RGBLED_WIDGET_LAYER_21_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_22_COLOR, CONFIG_RGBLED_WIDGET_LAYER_23_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_24_COLOR, CONFIG_RGBLED_WIDGET_LAYER_25_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_26_COLOR, CONFIG_RGBLED_WIDGET_LAYER_27_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_28_COLOR, CONFIG_RGBLED_WIDGET_LAYER_29_COLOR,
+    CONFIG_RGBLED_WIDGET_LAYER_30_COLOR, CONFIG_RGBLED_WIDGET_LAYER_31_COLOR,
+};
+#endif
+
+#if SHOW_BLE_PROFILE
+static const uint8_t ble_profile_color_idx[] = {
     CONFIG_RGBLED_WIDGET_LAYER_0_COLOR,  CONFIG_RGBLED_WIDGET_LAYER_1_COLOR,
     CONFIG_RGBLED_WIDGET_LAYER_2_COLOR,  CONFIG_RGBLED_WIDGET_LAYER_3_COLOR,
     CONFIG_RGBLED_WIDGET_LAYER_4_COLOR,  CONFIG_RGBLED_WIDGET_LAYER_5_COLOR,
@@ -103,7 +131,8 @@ static void set_rgb_leds(uint8_t color, uint16_t duration_ms) {
         if ((bit & led_current_color) != (bit & color)) {
             // bits are different, so we need to change one
             if (bit & color) {
-                led_on(led_dev, rgb_idx[pos]);
+                led_set_brightness(led_dev, rgb_idx[pos], CONFIG_RGBLED_WIDGET_BRIGHTNESS);
+                //led_on(led_dev, rgb_idx[pos]);
             } else {
                 led_off(led_dev, rgb_idx[pos]);
             }
@@ -118,6 +147,7 @@ static void set_rgb_leds(uint8_t color, uint16_t duration_ms) {
 // define message queue of blink work items, that will be processed by a
 // separate thread
 K_MSGQ_DEFINE(led_msgq, sizeof(struct blink_item), 16, 1);
+
 
 static void indicate_connectivity_internal(void) {
     struct blink_item blink = {.duration_ms = CONFIG_RGBLED_WIDGET_CONN_BLINK_MS};
@@ -170,6 +200,7 @@ static int led_output_listener_cb(const zmk_event_t *eh) {
 static struct k_work_delayable indicate_connectivity_work;
 static void indicate_connectivity_cb(struct k_work *work) { indicate_connectivity_internal(); }
 void indicate_connectivity() { k_work_reschedule(&indicate_connectivity_work, K_MSEC(16)); }
+
 
 ZMK_LISTENER(led_output_listener, led_output_listener_cb);
 
@@ -318,6 +349,46 @@ ZMK_SUBSCRIPTION(led_layer_color_listener, zmk_layer_state_changed);
 ZMK_SUBSCRIPTION(led_layer_color_listener, zmk_activity_state_changed);
 #endif // SHOW_LAYER_COLORS
 
+#if SHOW_BLE_PROFILE 
+static int led_ble_profile_listener_cb(const zmk_event_t *eh) {
+    static int last_profile = -1;
+
+    struct zmk_ble_active_profile_changed *ev = as_zmk_ble_active_profile_changed(eh);
+
+    if (last_profile == ev->index) {
+        LOG_INF("led profile not changed skip updating");
+        return 0;
+    }
+
+    LOG_INF("led profile changed from %d to %d", last_profile, ev->index);
+
+    if (!initialized) {
+        last_profile = ev->index;
+        return 0;
+    }
+
+    // Bounds check
+    if (ev->index >= ARRAY_SIZE(ble_profile_color_idx)) {
+        LOG_ERR("Profile index %d out of bounds", ev->index);
+        return -1;
+    }
+
+    struct blink_item blink = {.duration_ms = CONFIG_RGBLED_WIDGET_CONN_BLINK_MS};
+
+    blink.color = ble_profile_color_idx[ev->index];
+    LOG_INF("Setting BLE profile %d color to %s", ev->index, color_names[blink.color]);
+    k_msgq_put(&led_msgq, &blink, K_NO_WAIT);
+
+    last_profile = ev->index;
+
+    return 0;
+}
+
+ZMK_LISTENER(led_ble_profile_listener, led_ble_profile_listener_cb);
+ZMK_SUBSCRIPTION(led_ble_profile_listener, zmk_ble_active_profile_changed);
+#endif // SHOW_BLE_PROFILE
+
+
 #if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
 void indicate_layer(void) {
     uint8_t index = zmk_keymap_highest_layer_active();
@@ -355,6 +426,7 @@ static void indicate_layer_cb(struct k_work *work) { indicate_layer(); }
 ZMK_LISTENER(led_layer_listener, led_layer_listener_cb);
 ZMK_SUBSCRIPTION(led_layer_listener, zmk_layer_state_changed);
 #endif // SHOW_LAYER_CHANGE
+
 
 extern void led_process_thread(void *d0, void *d1, void *d2) {
     ARG_UNUSED(d0);
@@ -423,6 +495,7 @@ extern void led_init_thread(void *d0, void *d1, void *d2) {
     update_layer_color();
 #endif // SHOW_LAYER_COLORS
 
+    // indicate_ble_profile();
     initialized = true;
     LOG_INF("Finished initializing LED widget");
 }

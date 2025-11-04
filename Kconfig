@@ -13,8 +13,259 @@ config RGBLED_WIDGET
 
 if RGBLED_WIDGET
 
-config LED
+
+config RGBLED_WIDGET_LED
+    bool "Use individual GPIO LEDs for each status type"
     default y
+    #auto disable is RGBLED_WIDGET_WS2812 or RGBLED_WIDGET_MONO is on
+    depends on !RGBLED_WIDGET_WS2812 && !RGBLED_WIDGET_MONO
+
+config RGBLED_WIDGET_WS2812
+    bool "Use WS2812 addressable LEDs instead of GPIO LEDs"
+    default n
+    help
+      Enable WS2812 (NeoPixel) addressable LED support with multi-LED
+      capabilities, spatial mapping, animations, and LED sharing.
+      When disabled, the original GPIO LED implementation is used.
+
+config RGBLED_WIDGET_MONO
+    bool "Use simple mono-color GPIO LEDs"
+    default n
+    depends on !RGBLED_WIDGET_WS2812
+    help
+      Enable simple mono-color LED support using individual GPIO pins.
+      Supports battery and connectivity status with priority-based sharing.
+      GPIOs can be shared between different status types using different
+      blink patterns. Priority: CONNECT > BAT > LAYER.
+
+if RGBLED_WIDGET_WS2812
+
+config RGBLED_WIDGET_LED_STRIP_PWM
+    bool "Enable PWM instead of SPI"
+    default n
+# config LED_STRIP
+#     default y
+
+# config WS2812_STRIP
+#     default y
+
+config RGBLED_WIDGET_LED_COUNT
+    int "Number of LEDs in the strip"
+    range 1 4
+    default 2
+    help
+      Number of addressable LEDs in the WS2812 strip. Maximum 4 LEDs
+      are supported for optimal performance and memory usage.
+
+config RGBLED_WIDGET_SPATIAL_MAPPING
+    bool "Enable spatial status mapping"
+    default y
+    help
+      Enable mapping different status types to specific LED positions
+      in the strip for clearer visual indication.
+
+config RGBLED_WIDGET_ANIMATIONS
+    bool "Enable advanced animations and patterns"
+    default y
+    help
+      Enable advanced LED patterns like pulse, breathing, and smooth
+      color transitions for enhanced visual feedback.
+
+config RGBLED_WIDGET_LED_SHARING
+    bool "Enable LED sharing for multi-function display"
+    default y
+    help
+      Allow layer indication to temporarily use battery or connectivity LEDs
+      when dedicated layer LED is not available or for enhanced visibility.
+
+config RGBLED_WIDGET_STATIC_TIMEOUT_MS
+    int "Static display timeout in milliseconds"
+    range 100 10000
+    default 5000
+
+config RGBLED_WIDGET_SHARE_TIMEOUT_MS
+    int "LED sharing timeout in milliseconds"
+    range 100 5000
+    default 500
+    depends on RGBLED_WIDGET_LED_SHARING
+    help
+      Duration for which a shared LED displays layer status before
+      returning to its primary function.
+
+config RGBLED_WIDGET_BATTERY_TIMEOUT_MS
+    int "Battery light up timeout in milliseconds"
+    range 100 5000
+    default 5000
+
+
+# LED Mapping Configuration
+config RGBLED_WIDGET_BATTERY_LED_INDEX
+    int "LED index for battery status"
+    range 0 3
+    default 0
+    depends on RGBLED_WIDGET_SPATIAL_MAPPING
+    help
+      Which LED in the strip displays battery status (0-based index).
+
+config RGBLED_WIDGET_CONN_LED_INDEX
+    int "LED index for connectivity status"
+    range 0 3
+    default 1
+    depends on RGBLED_WIDGET_SPATIAL_MAPPING
+    help
+      Which LED in the strip displays connectivity status (0-based index).
+
+config RGBLED_WIDGET_LAYER_LED_INDEX
+    int "LED index for layer status"
+    range 0 3
+    default 2
+    depends on RGBLED_WIDGET_SPATIAL_MAPPING
+    help
+      Which LED in the strip displays layer status (0-based index).
+      If this LED index is >= LED_COUNT, layer sharing will be used.
+
+config RGBLED_WIDGET_LAYER_SHARE_BATTERY
+    bool "Allow layer indication to share battery LED"
+    default y
+    depends on RGBLED_WIDGET_LED_SHARING
+    help
+      Allow layer changes to temporarily override the battery LED
+      when dedicated layer LED is not available.
+
+config RGBLED_WIDGET_LAYER_SHARE_CONN
+    bool "Allow layer indication to share connectivity LED"
+    default y
+    depends on RGBLED_WIDGET_LED_SHARING
+    help
+      Allow layer changes to temporarily override the connectivity LED
+      when dedicated layer LED is not available.
+
+endif # RGBLED_WIDGET_WS2812
+
+if RGBLED_WIDGET_MONO
+
+config RGBLED_WIDGET_MONO_TIMEOUT_MS
+    int "Default timeout for mono LED status display (milliseconds)"
+    range 1000 30000
+    default 5000
+    help
+      Default timeout in milliseconds for how long mono LEDs stay on
+      before automatically turning off to save power.
+
+config RGBLED_WIDGET_MONO_BATTERY_BLINK_MS
+    int "Battery status blink duration (milliseconds)"
+    range 100 2000
+    default 300
+    help
+      Duration of each blink for battery status indication.
+
+config RGBLED_WIDGET_MONO_CONN_BLINK_MS
+    int "Connectivity status blink duration (milliseconds)"
+    range 100 2000
+    default 200
+    help
+      Duration of each blink for connectivity status indication.
+      Different from battery to distinguish shared GPIO usage.
+
+config RGBLED_WIDGET_MONO_LAYER_BLINK_MS
+    int "Layer status blink duration (milliseconds)"
+    range 100 2000
+    default 400
+    help
+      Duration of each blink for layer status indication.
+      Different from battery/connectivity to distinguish shared GPIO usage.
+
+config RGBLED_WIDGET_MONO_SHARE_TIMEOUT_MS
+    int "Shared GPIO timeout (milliseconds)"
+    range 100 5000
+    default 1000
+    help
+      How long a higher priority status can use a shared GPIO before
+      returning it to the lower priority status.
+
+endif # RGBLED_WIDGET_MONO
+
+# Power Management Configuration
+config RGBLED_WIDGET_POWER_MGMT
+    bool "Enable RGB LED power management for battery-powered devices"
+    default n
+    help
+      Enable intelligent power management for RGB LEDs that automatically
+      controls external power to LEDs based on battery levels and user activity
+      patterns. This can provide up to 75% power savings on wireless keyboards.
+      Requires boards with external power control capability.
+
+if RGBLED_WIDGET_POWER_MGMT
+
+config RGBLED_WIDGET_POWER_MGMT_BATTERY_THRESHOLD
+    int "Battery percentage threshold for power cutoff"
+    range 5 95
+    default 20
+    help
+      Battery level percentage below which RGB LEDs will be powered off
+      to conserve battery. LEDs will remain off until battery level
+      recovers above threshold + hysteresis value.
+
+config RGBLED_WIDGET_POWER_MGMT_IDLE_TIMEOUT_MS
+    int "Idle timeout before power off (milliseconds)"
+    range 30000 3600000
+    default 300000
+    help
+      Time in milliseconds of keyboard inactivity before RGB LEDs are
+      powered off to save battery. LEDs will immediately power on when
+      any keyboard activity is detected. Range: 30 seconds to 1 hour.
+
+config RGBLED_WIDGET_POWER_MGMT_HYSTERESIS
+    int "Battery hysteresis percentage"
+    range 1 20
+    default 5
+    help
+      Hysteresis value added to battery threshold for power-on to prevent
+      oscillation around the threshold. LEDs power back on when battery
+      level reaches (threshold + hysteresis) percent.
+
+config RGBLED_WIDGET_POWER_MGMT_STARTUP_DELAY_MS
+    int "Startup delay before power management becomes active (milliseconds)"
+    range 0 10000
+    default 2000
+    help
+      Delay after initialization before power management monitoring begins.
+      Allows system to stabilize and prevents premature power-off during
+      boot sequence. Set to 0 to disable delay.
+
+config RGBLED_WIDGET_POWER_MGMT_ENABLE_ACTIVITY_DETECTION
+    bool "Enable activity-based power management"
+    default y
+    help
+      Enable automatic power-off based on keyboard idle timeout.
+      When disabled, only battery-level based power management is active.
+
+config RGBLED_WIDGET_POWER_MGMT_ENABLE_BATTERY_DETECTION
+    bool "Enable battery-level based power management"
+    default y
+    depends on ZMK_BATTERY_REPORTING
+    help
+      Enable automatic power-off when battery level falls below threshold.
+      When disabled, only activity-based power management is active.
+      Requires ZMK_BATTERY_REPORTING to be enabled.
+
+config RGBLED_WIDGET_POWER_MGMT_DEBUG
+    bool "Enable power management debug logging"
+    default n
+    help
+      Enable detailed debug logging for power management state changes,
+      battery monitoring, and activity detection. Useful for troubleshooting
+      but may impact performance and power consumption.
+
+endif # RGBLED_WIDGET_POWER_MGMT
+
+config RGBLED_WIDGET_BRIGHTNESS
+    int "Default LED brightness (0-255)"
+    range 0 255
+    default 128
+    help
+      Default brightness level for WS2812 LEDs. Lower values reduce
+      power consumption and eye strain.
 
 config RGBLED_WIDGET_INTERVAL_MS
     int "Minimum wait duration between two blinks in ms"
@@ -116,6 +367,8 @@ config RGBLED_WIDGET_CONN_COLOR_USB
 # Layer indicator settings
 config RGBLED_WIDGET_SHOW_LAYER_CHANGE
     bool "Indicate highest active layer on each layer change with a sequence of blinks"
+config RGBLED_WIDGET_SHOW_BLE_PROFILE
+    bool "Indicate ble profile change with a sequence of blinks"
 
 config RGBLED_WIDGET_LAYER_BLINK_MS
     int "Blink and wait duration for layer indicator"

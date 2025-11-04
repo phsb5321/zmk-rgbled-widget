@@ -1,0 +1,46 @@
+//vim: set ft=dts:
+//
+// Device tree overlay for mono LED configuration
+// This example shows how to configure simple GPIO LEDs for battery and connectivity status
+//
+
+/ {
+    aliases {
+        // Define GPIO LED aliases for mono LED widget
+        // These should point to actual GPIO pins on your board
+        led-bat = &battery_led;      // Battery status LED (GPIO alias)
+        led-connect = &connect_led;  // Connectivity status LED (GPIO alias)
+        // led-layer = &layer_led;   // Optional layer status LED (can share with above)
+    };
+
+    // Define GPIO LEDs
+    gpio_leds {
+        compatible = "gpio-leds";
+
+        battery_led: battery_led {
+            // Replace with actual GPIO pin for your board
+            // Example: gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+            label = "Battery Status LED";
+        };
+
+        connect_led: connect_led {
+            // Replace with actual GPIO pin for your board
+            // Example: gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;
+            label = "Connectivity Status LED";
+        };
+
+        // Optional: separate layer LED
+        // layer_led: layer_led {
+        //     gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+        //     label = "Layer Status LED";
+        // };
+    };
+};
+
+// Example power management configuration (optional)
+// Uncomment and adjust if using power management features
+// &ext_power {
+//     status = "okay";
+// };
