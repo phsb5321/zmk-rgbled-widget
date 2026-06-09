@@ -512,23 +512,28 @@ static int indicate_connectivity_ws2812(void) {
 #endif
     default: // ZMK_TRANSPORT_BLE
 #if IS_ENABLED(CONFIG_ZMK_BLE)
+    {
+        // Per-profile color (stock-firmware parity): each BT profile index gets
+        // its OWN color; connection STATE is conveyed by the animation —
+        // steady = connected, pulse = advertising/open, blink = disconnected.
+        static const uint8_t profile_palette[] = {4, 2, 6, 5, 7}; // BLUE GREEN CYAN MAGENTA WHITE
+        uint8_t prof = zmk_ble_active_profile_index();
+        color_idx = profile_palette[prof < ARRAY_SIZE(profile_palette) ? prof : 0];
         if (zmk_ble_active_profile_is_connected()) {
-            color_idx = CONFIG_RGBLED_WIDGET_CONN_COLOR_CONNECTED;
-            LOG_INF("BLE connected indication");
+            LOG_INF("BLE connected indication (profile %d)", prof);
         } else if (zmk_ble_active_profile_is_open()) {
-            color_idx = CONFIG_RGBLED_WIDGET_CONN_COLOR_ADVERTISING;
             pattern.type = ANIM_PULSE;
             pattern.period_ms = 2000;
             pattern.start_color = color_idx;
-            LOG_INF("BLE advertising indication");
+            LOG_INF("BLE advertising indication (profile %d)", prof);
         } else {
-            color_idx = CONFIG_RGBLED_WIDGET_CONN_COLOR_DISCONNECTED;
             pattern.type = ANIM_BLINK;
             pattern.period_ms = 1000;
             pattern.start_color = color_idx;
             pattern.end_color = 0;
-            LOG_INF("BLE disconnected indication");
+            LOG_INF("BLE disconnected indication (profile %d)", prof);
         }
+    }
 #endif
         break;
     }
