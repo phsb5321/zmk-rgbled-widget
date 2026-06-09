@@ -23,11 +23,12 @@ config RGBLED_WIDGET_WS2812
 
 if RGBLED_WIDGET_WS2812
 
-config LED_STRIP
-    default y
-    
-config WS2812_STRIP
-    default y
+# NOTE (phsb5321 fork fix): upstream had typeless `config LED_STRIP`/`WS2812_STRIP
+# default y` blocks here. Redefining those Zephyr bool symbols without a type
+# emits "defined without a type" -> ZMK treats Kconfig warnings as errors ->
+# build abort on current Zephyr 4.1. Removed; they are enabled via the consumer's
+# shield .conf (CONFIG_LED_STRIP=y + CONFIG_WS2812_STRIP=y) and Zephyr's own
+# DT-driven `default y` on the present ws2812 node.
 
 config RGBLED_WIDGET_LED_COUNT
     int "Number of LEDs in the strip"
