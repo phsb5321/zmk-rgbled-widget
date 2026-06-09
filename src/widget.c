@@ -407,7 +407,7 @@ static void update_led_animation(uint8_t led_index) {
             float phase = (float)cycle_time / anim->period_ms;
             
             // Create sine wave for smooth pulsing
-            float intensity = (sinf(phase * 2 * M_PI) + 1.0f) / 2.0f;
+            float intensity = (sinf(phase * 2.0f * (float)M_PI) + 1.0f) / 2.0f;
             
             struct led_rgb start_rgb, result_rgb;
             color_index_to_rgb(anim->start_color, &start_rgb);
