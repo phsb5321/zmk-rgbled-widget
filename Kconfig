@@ -118,6 +118,21 @@ config RGBLED_WIDGET_LAYER_SHARE_CONN
       Allow layer changes to temporarily override the connectivity LED
       when dedicated layer LED is not available.
 
+config RGBLED_WIDGET_CAPS_LOCK_INDICATOR
+    bool "Light a status LED while host caps-lock is on"
+    depends on ZMK_HID_INDICATORS
+    help
+      Drive the STATUS_CUSTOM WS2812 LED in CAPS_LOCK_COLOR while the host
+      reports caps-lock on (HID keyboard-LED output report). Requires
+      CONFIG_ZMK_HID_INDICATORS so the host LED state reaches the keyboard.
+      Default off.
+
+config RGBLED_WIDGET_CAPS_LOCK_COLOR
+    int "Color index (0-7) for the caps-lock indication"
+    depends on RGBLED_WIDGET_CAPS_LOCK_INDICATOR
+    range 0 7
+    default $(COLOR_RED)
+
 endif # RGBLED_WIDGET_WS2812
 
 config RGBLED_WIDGET_INTERVAL_MS
