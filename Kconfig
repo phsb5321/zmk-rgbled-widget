@@ -133,6 +133,19 @@ config RGBLED_WIDGET_CAPS_LOCK_COLOR
     range 0 7
     default $(COLOR_RED)
 
+config RGBLED_WIDGET_EXT_POWER_IDLE_GATING
+    bool "Cut the WS2812 ext-power rail while ZMK is idle"
+    depends on ZMK_EXT_POWER
+    help
+      Drop the ext-power rail feeding the WS2812 strip when ZMK goes idle
+      (no activity for the idle timeout) and restore it on the next keypress.
+      The strip's quiescent draw (~1 mA/LED) is otherwise always on; gating it
+      is a real battery win for a wireless build. The status indicators stay
+      visible while the keyboard is in use (gated on activity, not per blink).
+      Wear-safe: ZMK debounces the ext-power settings save, so the partition is
+      written only when the rail settles. Off by default; needs a
+      zmk,ext-power-generic node.
+
 endif # RGBLED_WIDGET_WS2812
 
 config RGBLED_WIDGET_INTERVAL_MS
