@@ -1182,6 +1182,44 @@ ZMK_LISTENER(led_layer_listener, led_layer_listener_cb);
 ZMK_SUBSCRIPTION(led_layer_listener, zmk_layer_state_changed);
 #endif // SHOW_LAYER_CHANGE
 
+// ── EXT_POWER idle-gating: cut the WS2812 rail when ZMK goes idle, restore it
+// on activity. The strip draws ~1 mA/LED of quiescent current even showing
+// "off", so dropping the rail while you're away from the keyboard is a real
+// battery win on a wireless build. Activity-gated (not per-blink) so the status
+// indicators stay visible while you're actually using the keyboard. Wear-safe:
+// ZMK's ext_power_save_state() debounces via k_work_reschedule, so the settings
+// partition is written only when the rail SETTLES, never per toggle. Default-
+// off; the consumer opts in and must have a zmk,ext-power-generic node.
+#if IS_ENABLED(CONFIG_RGBLED_WIDGET_EXT_POWER_IDLE_GATING) &&                                       \
+    DT_HAS_COMPAT_STATUS_OKAY(zmk_ext_power_generic)
+#include <drivers/ext_power.h>
+#include <zmk/activity.h>
+
+static const struct device *const widget_ext_power =
+    DEVICE_DT_GET(DT_COMPAT_GET_ANY_STATUS_OKAY(zmk_ext_power_generic));
+
+static int rgbled_ext_power_activity_cb(const zmk_event_t *eh) {
+    const struct zmk_activity_state_changed *ev = as_zmk_activity_state_changed(eh);
+    if (ev == NULL || !device_is_ready(widget_ext_power)) {
+        return 0;
+    }
+    if (ev->state == ZMK_ACTIVITY_ACTIVE) {
+        if (ext_power_get(widget_ext_power) == 0) {
+            ext_power_enable(widget_ext_power);
+            LOG_INF("rgbled: active -> ext_power ON");
+        }
+    } else { // ZMK_ACTIVITY_IDLE or ZMK_ACTIVITY_SLEEP
+        if (ext_power_get(widget_ext_power) == 1) {
+            ext_power_disable(widget_ext_power);
+            LOG_INF("rgbled: idle -> ext_power OFF");
+        }
+    }
+    return 0;
+}
+ZMK_LISTENER(rgbled_ext_power, rgbled_ext_power_activity_cb);
+ZMK_SUBSCRIPTION(rgbled_ext_power, zmk_activity_state_changed);
+#endif // CONFIG_RGBLED_WIDGET_EXT_POWER_IDLE_GATING
+
 extern void led_process_thread(void *d0, void *d1, void *d2) {
     ARG_UNUSED(d0);
     ARG_UNUSED(d1);
