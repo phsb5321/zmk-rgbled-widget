@@ -1,5 +1,7 @@
 target_sources_ifdef(CONFIG_RGBLED_WIDGET app PRIVATE src/widget.c)
 target_sources_ifdef(CONFIG_ZMK_BEHAVIOR_RGBLED_WIDGET app PRIVATE src/behaviors/behavior_rgbled_widget.c)
 target_sources_ifdef(CONFIG_RGBLED_WIDGET_CAPS_LOCK_INDICATOR app PRIVATE src/caps_lock.c)
+target_sources_ifdef(CONFIG_RGBLED_WIDGET_PEER_STATUS_INDICATOR app PRIVATE src/peer_status.c)
+target_sources_ifdef(CONFIG_RGBLED_WIDGET_CHARGING_INDICATOR app PRIVATE src/charging.c)
 
 zephyr_include_directories(include)

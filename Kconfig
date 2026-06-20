@@ -146,6 +146,46 @@ config RGBLED_WIDGET_EXT_POWER_IDLE_GATING
       written only when the rail settles. Off by default; needs a
       zmk,ext-power-generic node.
 
+config RGBLED_WIDGET_PEER_STATUS_INDICATOR
+    bool "Blink on split peer connect/drop (central)"
+    depends on ZMK_SPLIT
+    help
+      On the central, blink the connectivity LED when the split peripheral
+      half (re)connects or drops — the "only one side types" early warning.
+      Uses a raw bt_conn callback filtered to the peripheral link; renders on
+      the central's LEDs. Off by default.
+
+config RGBLED_WIDGET_PEER_STATUS_BLINK_MS
+    int "Peer-status blink duration (ms)"
+    depends on RGBLED_WIDGET_PEER_STATUS_INDICATOR
+    default 2000
+
+config RGBLED_WIDGET_PEER_STATUS_LOST_COLOR
+    int "Color index (0-7) for peer LOST"
+    depends on RGBLED_WIDGET_PEER_STATUS_INDICATOR
+    range 0 7
+    default $(COLOR_RED)
+
+config RGBLED_WIDGET_PEER_STATUS_OK_COLOR
+    int "Color index (0-7) for peer (re)connected"
+    depends on RGBLED_WIDGET_PEER_STATUS_INDICATOR
+    range 0 7
+    default $(COLOR_GREEN)
+
+config RGBLED_WIDGET_CHARGING_INDICATOR
+    bool "Steady color on the battery LED while USB-charging"
+    depends on ZMK_USB
+    help
+      While USB-powered, hold a steady charging color on the battery LED and
+      clear it on unplug. The peripheral sets ZMK_USB=n, so this is
+      central-relevant. Off by default.
+
+config RGBLED_WIDGET_CHARGING_COLOR
+    int "Color index (0-7) for the charging indication"
+    depends on RGBLED_WIDGET_CHARGING_INDICATOR
+    range 0 7
+    default $(COLOR_GREEN)
+
 endif # RGBLED_WIDGET_WS2812
 
 config RGBLED_WIDGET_INTERVAL_MS
